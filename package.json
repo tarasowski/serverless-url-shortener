@@ -1,0 +1,24 @@
+{
+  "name": "serverless-url-shortener",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "No testing yet",
+    "folder": "rm -rf build && mkdir build",
+    "bucket": "aws s3api create-bucket --bucket sls-url-shortener-test --region us-east-1",
+    "package": "aws cloudformation package --template-file template.yaml --output-template-file build/output.yaml --s3-bucket sls-url-shortener-test",
+    "deploy": "aws cloudformation deploy --template-file build/output.yaml --stack-name sls-url-shortener-test --capabilities CAPABILITY_NAMED_IAM",
+    "qd": "npm run folder && npm run bucket && npm run package && npm run deploy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tarasowski/serverless-url-shortener.git"
+  },
+  "author": "Dimitri Tarasowski",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tarasowski/serverless-url-shortener/issues"
+  },
+  "homepage": "https://github.com/tarasowski/serverless-url-shortener#readme"
+}

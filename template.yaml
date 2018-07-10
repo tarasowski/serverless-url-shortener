@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: URL shortener service
+
+Globals:
+    Function:
+        Timeout: 3
+        Runtime: nodejs8.10
+        Handler: app.lambda_handler
+        Environment:
+            Variables:
+                BUCKET_NAME: !Ref ServerlessRedirectS3Bucket
+                REGION: us-east-1
+    Api:
+        Cors:
+            AllowMethods: "'*'"
+            AllowHeaders: "'*'"
+            AllowOrigin: "'*'"
+
+
+Resources:
+
+    SubmitLongUrl:
+        Type: AWS::Serverless::Function 
+        Properties:
+            Handler: submit-long-url.handler
+            Description: Lambda function that stores the object in s3
+            Policies:
+                -   Version: 2012-10-17
+                    Statement: 
+                        -   Effect: Allow
+                            Action:
+                                -   s3:PutObject
+                            Resource: '*'
+            Events:
+                CallS3Bucket:
+                    Type: Api 
+                    Properties:
+                        Path: /
+                        Method: POST
+                        
+    GetShortUrl:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: get-short-url.handler
+            Description: Lambda function that gets the long url stored as metadata from the file
+            Policies:
+                -   Version: 2012-10-17
+                    Statement:
+                        -   Effect: Allow
+                            Action:
+                                -   s3:GetObject
+                            Resource: '*'
+            Events:
+                GetDataFromS3Bucket:
+                    Type: Api
+                    Properties:
+                        Path: /{urlPath}
+                        Method: GET
+            
+    
+    ServerlessRedirectS3Bucket:
+        Type: AWS::S3::Bucket
+        Properties:
+            AccessControl: PublicRead
+            WebsiteConfiguration: 
+                IndexDocument: index.html
+            #DeletionPolicy: Delete
+    
+    S3WebsiteBucketPolicy:
+        Type: AWS::S3::BucketPolicy
+        Properties:
+            Bucket: !Ref ServerlessRedirectS3Bucket
+            PolicyDocument:
+                Statement:
+                    Effect: Allow
+                    Action:
+                        -   "s3:GetObject"
+                    Resource: !Sub "arn:aws:s3:::${ServerlessRedirectS3Bucket}/*"
+                    Principal: '*'
+                          
+            
+
+Outputs:
+
+    SubmitLongUrlApi:
+        Description: "API Gateway endpoint URL for Prod stage"
+        Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+    SubmitLongUrl:
+        Description: "Submit Long Url Function ARN"
+        Value: !GetAtt SubmitLongUrl.Arn
+        
+    GetShortUrl:
+        Description: "Hello World Lambda Function ARN"
+        Value: !GetAtt GetShortUrl.Arn
+
+    BucketName:
+        Value: !Ref ServerlessRedirectS3Bucket
+        Description: This is the name of the bucket
+    
+    WebsiteURL:
+        Value: !GetAtt ServerlessRedirectS3Bucket.WebsiteURL
+        Description: This is the URL of the website
+    
+    S3BucketSecureURL:
+        Value: !Sub
+            -   https://${Domain}
+            -   Domain: !GetAtt ServerlessRedirectS3Bucket.DomainName
+        Description: Name of the s3 bucket to hold the content
